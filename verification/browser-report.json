@@ -1,0 +1,76 @@
+{
+  "browser": "154.0.4258.62",
+  "fixture": {
+    "states": [
+      {
+        "state": "keep",
+        "display": "block"
+      },
+      {
+        "state": "hide",
+        "display": "none"
+      }
+    ],
+    "passed": true
+  },
+  "live": {
+    "url": "https://search.bilibili.com/video?keyword=payday",
+    "cards": 42,
+    "states": [
+      "keep",
+      "keep",
+      "keep",
+      "keep",
+      "keep",
+      "keep",
+      "keep",
+      "keep",
+      "keep",
+      "keep",
+      "keep",
+      "keep",
+      "keep",
+      "keep",
+      "keep",
+      "keep",
+      "hide",
+      "keep",
+      "hide",
+      "hide",
+      "hide",
+      "keep",
+      "keep",
+      "hide",
+      "keep",
+      "hide",
+      "keep",
+      "hide",
+      "keep",
+      "keep",
+      "keep",
+      "keep",
+      "keep",
+      "keep",
+      "keep",
+      "keep",
+      "keep",
+      "keep",
+      "hide",
+      "keep",
+      "keep",
+      "hide"
+    ],
+    "panel": "保留 33 · 隐藏 9 · 核验中 0 · 待核验 0",
+    "tags": {
+      "ok": true,
+      "tags": [
+        "收获日2",
+        "OVERKILL SOFTWARE",
+        "PAYDAY2"
+      ]
+    },
+    "sampleId": "BV1wx411M7Po"
+  },
+  "workerUrl": "chrome-extension://klemcphmlljkcpiakajijhcbhndggdgg/background.js",
+  "errors": []
+}

@@ -1,0 +1,161 @@
+(function () {
+  "use strict";
+  const matcher = globalThis.BiliCompleteMatcher;
+  const cards = new Map();
+  const tagCache = new Map();
+  let enabled = true;
+  let query = "";
+  let signature = "";
+  let epoch = 0;
+  let timer;
+  let host;
+  let status;
+  let toggle;
+  let note;
+
+  function activate() {
+    document.documentElement?.classList.toggle("bcs-active", enabled && matcher.tokenize(query).length > 0);
+  }
+
+  function readRoute() {
+    const url = new URL(location.href);
+    const next = `${url.pathname}?${url.searchParams.toString()}`;
+    if (next === signature) return;
+    signature = next;
+    query = url.searchParams.get("keyword") || "";
+    epoch++;
+    cards.clear();
+    document.querySelectorAll("[data-bcs-state]").forEach(element => element.removeAttribute("data-bcs-state"));
+    activate();
+  }
+
+  function setState(info, state, reason = "") {
+    info.state = state;
+    info.reason = reason;
+    info.card.dataset.bcsState = state;
+    info.container.dataset.bcsState = state;
+  }
+
+  function describe(card) {
+    const titleNode = card.querySelector(".bili-video-card__info--tit, .bili-video-card__av--tit, .title, h3");
+    if (!titleNode) return null; // Skeleton: keep pending, wait for actual content.
+    const title = titleNode.getAttribute("title") || titleNode.textContent || "";
+    const anchors = [...card.querySelectorAll("a[href]")];
+    let id = null;
+    for (const anchor of anchors) {
+      const href = anchor.getAttribute("href") || "";
+      const found = href.match(/\/video\/(BV[a-zA-Z0-9]{10}|av[1-9][0-9]*)(?:[/?#]|$)/);
+      if (found) { id = found[1]; break; }
+    }
+    const container = card.closest(".video-list-item") || card;
+    return {card, container, id, title, state: "pending", reason: ""};
+  }
+
+  async function evaluate(info) {
+    const currentEpoch = epoch;
+    const currentQuery = query;
+    if (matcher.matches(currentQuery, info.title)) {
+      setState(info, "keep");
+      return;
+    }
+    if (!info.id) {
+      setState(info, "error", "未识别到视频编号，无法确认标签");
+      return;
+    }
+    setState(info, "pending");
+    try {
+      let result = tagCache.get(info.id);
+      if (!result) {
+        result = await chrome.runtime.sendMessage({type: "bcs:tags", id: info.id});
+        if (result?.ok) tagCache.set(info.id, result);
+      }
+      if (epoch !== currentEpoch || cards.get(info.card) !== info || !info.card.isConnected) return;
+      if (!result?.ok) setState(info, "error", result?.error || "未收到标签响应");
+      else setState(info, matcher.matches(currentQuery, info.title, result.tags) ? "keep" : "hide");
+    } catch (error) {
+      if (epoch === currentEpoch && cards.get(info.card) === info) setState(info, "error", error.message);
+    }
+    render();
+  }
+
+  function mountPanel() {
+    if (host?.isConnected || !document.body) return;
+    host = document.createElement("div");
+    host.id = "bcs-panel";
+    const shadow = host.attachShadow({mode: "open"});
+    shadow.innerHTML = `<style>
+      :host{position:fixed;bottom:20px;right:20px;z-index:2147483646;color:#253345;font:13px/1.6 system-ui,sans-serif}
+      .box{width:290px;border:1px solid #c6e8f4;border-radius:14px;background:#fff;box-shadow:0 5px 28px #183c5326;padding:14px}
+      .head{display:flex;align-items:center;justify-content:space-between;font-weight:700;font-size:14px}
+      button{font:inherit;cursor:pointer;border:1px solid #c6d9e3;background:#f4fafd;border-radius:7px;padding:4px 9px;color:#166781}
+      p{margin:9px 0 0;overflow-wrap:anywhere}.small{font-size:12px;color:#6e7c8b}.actions{display:flex;gap:8px;margin-top:10px}
+    </style><div class="box"><div class="head"><span>B站搜索 · 完整包含</span><button id="toggle" type="button"></button></div><p id="status" aria-live="polite"></p><p id="note" class="small"></p><div class="actions"><button id="retry" type="button">重新核验</button></div><p class="small">标题 + 标签；中文、数字完整匹配，英文可拆成至少 2 字母的词块。</p></div>`;
+    status = shadow.getElementById("status");
+    toggle = shadow.getElementById("toggle");
+    note = shadow.getElementById("note");
+    toggle.addEventListener("click", async () => {
+      enabled = !enabled;
+      activate();
+      await chrome.storage.local.set({enabled});
+      scan();
+    });
+    shadow.getElementById("retry").addEventListener("click", () => {
+      epoch++;
+      cards.clear();
+      scan();
+    });
+    document.body.append(host);
+  }
+
+  function render() {
+    mountPanel();
+    if (!status) return;
+    const values = [...cards.values()].filter(info => info.card.isConnected);
+    const count = state => values.filter(info => info.state === state).length;
+    toggle.textContent = enabled ? "关闭过滤" : "开启过滤";
+    if (!enabled) status.textContent = "过滤已关闭，显示 B站原始结果。";
+    else if (!matcher.tokenize(query).length) status.textContent = "输入搜索内容后开始过滤。";
+    else status.textContent = `保留 ${count("keep")} · 隐藏 ${count("hide")} · 核验中 ${count("pending")} · 待核验 ${count("error")}`;
+    const failure = values.find(info => info.state === "error");
+    note.textContent = failure ? `待核验结果已隐藏：${failure.reason}` : `当前搜索：${query || "（空）"}。统计仅包含当前已加载视频。`;
+  }
+
+  function scan() {
+    readRoute();
+    if (enabled && matcher.tokenize(query).length) {
+      document.querySelectorAll(".bili-video-card, .video-item").forEach(card => {
+        const info = describe(card);
+        if (!info) return;
+        const old = cards.get(card);
+        if (old && old.id === info.id && old.title === info.title) return;
+        cards.set(card, info);
+        void evaluate(info);
+      });
+    }
+    for (const [card] of cards) if (!card.isConnected) cards.delete(card);
+    render();
+  }
+
+  function schedule() {
+    clearTimeout(timer);
+    timer = setTimeout(scan, 70);
+  }
+
+  readRoute();
+  chrome.storage.local.get({enabled: true}).then(settings => {
+    enabled = settings.enabled;
+    activate();
+    scan();
+  }).catch(scan);
+  chrome.storage.onChanged.addListener((changes, area) => {
+    if (area === "local" && changes.enabled) {
+      enabled = changes.enabled.newValue !== false;
+      activate();
+      scan();
+    }
+  });
+  new MutationObserver(schedule).observe(document.documentElement, {childList: true, subtree: true, characterData: true, attributes: true, attributeFilter: ["href", "title"]});
+  window.addEventListener("popstate", schedule);
+  // B站 uses pushState; isolated content scripts cannot patch its page-world history.
+  setInterval(() => { if (`${location.pathname}?${new URL(location.href).searchParams.toString()}` !== signature) scan(); }, 400);
+})();

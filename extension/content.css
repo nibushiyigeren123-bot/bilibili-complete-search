@@ -1,0 +1,6 @@
+html.bcs-active .bili-video-card:not([data-bcs-state="keep"]),
+html.bcs-active .video-item:not([data-bcs-state="keep"]),
+html.bcs-active .video-list-item:not([data-bcs-state="keep"]),
+html.bcs-active [data-bcs-state="hide"],
+html.bcs-active [data-bcs-state="pending"],
+html.bcs-active [data-bcs-state="error"] { display: none !important; }

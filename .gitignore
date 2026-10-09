@@ -1,0 +1,13 @@
+node_modules/
+verification/*profile*/
+verification/live-dom.html
+verification/installer-*/
+search-live.html
+search-bundle.js
+video/
+STATE.md
+tools/github_probe.py
+tools/publish_github.py
+*.zip
+*.log
+__pycache__/

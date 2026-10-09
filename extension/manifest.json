@@ -1,0 +1,16 @@
+{
+  "manifest_version": 3,
+  "name": "B站搜索 · 完整包含",
+  "version": "1.0.0",
+  "description": "合并视频标题与标签，只显示完整覆盖搜索内容的结果。英文支持词块拆分。",
+  "permissions": ["storage"],
+  "host_permissions": ["https://api.bilibili.com/*"],
+  "background": {"service_worker": "background.js"},
+  "content_scripts": [{
+    "matches": ["https://search.bilibili.com/*"],
+    "js": ["matcher.js", "content.js"],
+    "css": ["content.css"],
+    "run_at": "document_start"
+  }],
+  "action": {"default_title": "B站搜索 · 完整包含", "default_popup": "popup.html"}
+}

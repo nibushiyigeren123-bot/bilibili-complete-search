@@ -16,7 +16,7 @@ if ($ArchivePath) {
     $taskArchive = (Resolve-Path -LiteralPath $ArchivePath).Path
 } else {
     $taskRelease = Invoke-RestMethod -Uri 'https://api.github.com/repos/nibushiyigeren123-bot/bilibili-complete-search/releases/latest' -Headers $taskHeaders
-    $taskAsset = $taskRelease.assets | Where-Object { $_.name -like 'B站搜索完整包含_v*.zip' } | Select-Object -First 1
+    $taskAsset = $taskRelease.assets | Where-Object { $_.name -like 'bilibili-complete-search-v*.zip' } | Select-Object -First 1
     if (-not $taskAsset) { throw 'The latest release has no extension ZIP asset.' }
     $taskArchive = Join-Path $taskTemp 'extension.zip'
     Invoke-WebRequest -Uri $taskAsset.browser_download_url -OutFile $taskArchive -UseBasicParsing

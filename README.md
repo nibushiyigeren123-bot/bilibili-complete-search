@@ -22,7 +22,7 @@
 
 ## 方式一：自己动手安装（主动 / 手动安装）
 
-1. 到 [Releases](https://github.com/nibushiyigeren123-bot/bilibili-complete-search/releases/latest) 下载 `B站搜索完整包含_v1.0.0.zip` 并解压，也可下载源码 ZIP。
+1. 到 [Releases](https://github.com/nibushiyigeren123-bot/bilibili-complete-search/releases/latest) 下载 `bilibili-complete-search-v1.0.0.zip` 并解压，也可下载源码 ZIP。
 2. 将文件保存在固定目录，保留其中的 `extension` 文件夹。
 3. Chrome 地址栏输入 `chrome://extensions`，打开右上角「开发者模式」。
 4. 点击「加载已解压的扩展程序」，选择**直接包含 `manifest.json` 的 `extension` 文件夹**。

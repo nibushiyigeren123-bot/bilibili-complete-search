@@ -12,6 +12,34 @@
   let status;
   let toggle;
   let note;
+  let more;
+  let stop;
+  let fillRun = 0;
+  let filling = false;
+  let nextPage = 2;
+  let loadedPages = 0;
+  let pageSize = 42;
+  let fillTarget = 0;
+  let fillBudget = 5;
+  let fillEnded = false;
+  let fillPaused = false;
+  let fillError = "";
+
+  function videoRoute() { return /^\/video\/?$/.test(location.pathname); }
+  function values() { return [...cards.values()].filter(info => info.card.isConnected); }
+  function resetFill() {
+    fillRun++;
+    filling = false;
+    document.querySelectorAll("[data-bcs-imported]").forEach(element => element.remove());
+    nextPage = Math.max(1, Number(new URL(location.href).searchParams.get("page")) || 1) + 1;
+    loadedPages = 0;
+    pageSize = 42;
+    fillTarget = 0;
+    fillBudget = 5;
+    fillEnded = false;
+    fillPaused = false;
+    fillError = "";
+  }
 
   function activate() {
     document.documentElement?.classList.toggle("bcs-active", enabled && matcher.tokenize(query).length > 0);
@@ -24,6 +52,7 @@
     signature = next;
     query = url.searchParams.get("keyword") || "";
     epoch++;
+    resetFill();
     cards.clear();
     document.querySelectorAll("[data-bcs-state]").forEach(element => element.removeAttribute("data-bcs-state"));
     activate();
@@ -76,6 +105,108 @@
       if (epoch === currentEpoch && cards.get(info.card) === info) setState(info, "error", error.message);
     }
     render();
+    schedule();
+  }
+
+  function createVideo(video, template, page) {
+    const container = document.createElement("div");
+    container.className = template.className;
+    container.classList.add("bcs-imported");
+    container.dataset.bcsImported = "true";
+    container.dataset.bcsState = "pending";
+    const card = document.createElement("div");
+    card.className = "bili-video-card bcs-added-card";
+    card.dataset.bcsState = "pending";
+    const link = document.createElement("a");
+    link.href = `https://www.bilibili.com/video/${video.id}/`;
+    link.target = "_blank";
+    link.rel = "noopener noreferrer";
+    link.className = "bcs-video-link";
+    const thumb = document.createElement("div");
+    thumb.className = "bcs-thumbnail";
+    let picture;
+    try { picture = new URL(video.pic, "https://www.bilibili.com"); } catch {}
+    if (picture && /(^|\.)hdslb\.com$/.test(picture.hostname) && ["http:", "https:"].includes(picture.protocol)) {
+      picture.protocol = "https:";
+      const image = document.createElement("img");
+      image.src = picture.href;
+      image.alt = "";
+      image.loading = "lazy";
+      thumb.append(image);
+    }
+    const duration = document.createElement("span");
+    duration.textContent = video.duration || "";
+    thumb.append(duration);
+    const title = document.createElement("h3");
+    title.className = "bili-video-card__info--tit bcs-video-title";
+    // Parse highlighting as inert text; never insert server HTML into the live page.
+    const parsed = new DOMParser().parseFromString(video.title, "text/html");
+    parsed.querySelectorAll("script, style").forEach(element => element.remove());
+    title.textContent = parsed.body.textContent || "";
+    title.title = title.textContent;
+    link.append(thumb, title);
+    const owner = document.createElement("p");
+    owner.className = "bcs-video-owner";
+    owner.textContent = `${video.author || ""} · 补充自第 ${page} 页`;
+    card.append(link, owner);
+    container.append(card);
+    return container;
+  }
+
+  async function fill() {
+    if (filling || fillPaused || fillEnded || fillError || !enabled || !videoRoute()) return;
+    const list = values();
+    if (!list.length || list.some(info => info.state === "pending" || info.state === "error")) return;
+    const template = list.find(info => !info.container.hasAttribute("data-bcs-imported"))?.container;
+    const grid = template?.parentElement;
+    if (!grid || list.filter(info => info.state === "keep").length >= fillTarget || !fillBudget) return;
+    const currentEpoch = epoch;
+    const run = ++fillRun;
+    const currentUrl = location.href;
+    const current = () => enabled && epoch === currentEpoch && fillRun === run && signature === `${location.pathname}?${new URL(location.href).searchParams.toString()}` && grid.isConnected;
+    filling = true;
+    render();
+    try {
+      while (current() && fillBudget > 0 && !fillEnded && values().filter(info => info.state === "keep").length < fillTarget) {
+        const page = nextPage;
+        // Search uses the current B站 page's origin and normal CORS permissions.
+        // Tag requests remain in the extension worker because their endpoint
+        // does not provide the same browser-page access.
+        const result = await globalThis.BiliCompleteSearch.read({url: currentUrl, page, pageSize});
+        if (!current()) return;
+        if (!result?.ok) throw new Error(result?.error || "未收到补充搜索响应");
+        if (!Array.isArray(result.videos) || result.page !== page || !Number.isInteger(result.totalPages)) throw new Error("补充搜索响应格式已变化");
+        const existing = new Set(values().flatMap(info => [info.id, info.card.querySelector("a[href]")?.getAttribute("href")?.match(/av[1-9][0-9]*/)?.[0]]).filter(Boolean));
+        const added = [];
+        for (const video of result.videos) {
+          if (!/^BV[a-zA-Z0-9]{10}$/.test(video.id) || typeof video.title !== "string") throw new Error("补充视频格式已变化");
+          if (existing.has(video.id) || (video.aid && existing.has(`av${video.aid}`))) continue;
+          existing.add(video.id);
+          if (video.aid) existing.add(`av${video.aid}`);
+          const container = createVideo(video, template, page);
+          grid.append(container);
+          const info = describe(container.querySelector(".bili-video-card"));
+          cards.set(info.card, info);
+          added.push(evaluate(info));
+        }
+        nextPage++;
+        loadedPages++;
+        fillBudget--;
+        fillEnded = page >= result.totalPages || result.videos.length === 0;
+        await Promise.all(added);
+        if (!current()) return;
+        if (values().some(info => info.state === "error")) throw new Error("有视频标签待核验，请先重新核验后再继续补充");
+        if (!added.length && result.videos.length && !fillEnded) throw new Error("后续页没有新视频，已暂停补充，可手动继续");
+        render();
+        if (!fillEnded && fillBudget > 0 && values().filter(info => info.state === "keep").length < fillTarget) {
+          await new Promise(resolve => setTimeout(resolve, 400));
+        }
+      }
+    } catch (error) {
+      if (current()) fillError = error.message;
+    } finally {
+      if (fillRun === run) { filling = false; render(); }
+    }
   }
 
   function mountPanel() {
@@ -89,18 +220,39 @@
       .head{display:flex;align-items:center;justify-content:space-between;font-weight:700;font-size:14px}
       button{font:inherit;cursor:pointer;border:1px solid #c6d9e3;background:#f4fafd;border-radius:7px;padding:4px 9px;color:#166781}
       p{margin:9px 0 0;overflow-wrap:anywhere}.small{font-size:12px;color:#6e7c8b}.actions{display:flex;gap:8px;margin-top:10px}
-    </style><div class="box"><div class="head"><span>B站搜索 · 完整包含</span><button id="toggle" type="button"></button></div><p id="status" aria-live="polite"></p><p id="note" class="small"></p><div class="actions"><button id="retry" type="button">重新核验</button></div><p class="small">标题 + 标签；中文、数字完整匹配，英文可拆成至少 2 字母的词块。</p></div>`;
+    </style><div class="box"><div class="head"><span>B站搜索 · 完整包含</span><button id="toggle" type="button"></button></div><p id="status" aria-live="polite"></p><p id="note" class="small"></p><div class="actions"><button id="retry" type="button">重新核验</button><button id="more" type="button">继续补充</button><button id="stop" type="button" hidden>暂停补充</button></div><p class="small">标题 + 标签；中文、数字完整匹配，英文可拆成至少 2 字母的词块。</p></div>`;
     status = shadow.getElementById("status");
     toggle = shadow.getElementById("toggle");
     note = shadow.getElementById("note");
+    more = shadow.getElementById("more");
+    stop = shadow.getElementById("stop");
+    more.addEventListener("click", () => {
+      fillPaused = false;
+      fillError = "";
+      fillBudget = 5;
+      fillTarget = values().filter(info => info.state === "keep").length + pageSize;
+      void fill();
+      render();
+    });
+    stop.addEventListener("click", () => {
+      fillRun++;
+      filling = false;
+      fillPaused = true;
+      render();
+    });
     toggle.addEventListener("click", async () => {
       enabled = !enabled;
+      if (!enabled) resetFill();
       activate();
       await chrome.storage.local.set({enabled});
       scan();
     });
     shadow.getElementById("retry").addEventListener("click", () => {
       epoch++;
+      fillRun++;
+      filling = false;
+      fillError = "";
+      fillPaused = false;
       cards.clear();
       scan();
     });
@@ -110,14 +262,27 @@
   function render() {
     mountPanel();
     if (!status) return;
-    const values = [...cards.values()].filter(info => info.card.isConnected);
-    const count = state => values.filter(info => info.state === state).length;
+    const list = values();
+    const count = state => list.filter(info => info.state === state).length;
     toggle.textContent = enabled ? "关闭过滤" : "开启过滤";
     if (!enabled) status.textContent = "过滤已关闭，显示 B站原始结果。";
     else if (!matcher.tokenize(query).length) status.textContent = "输入搜索内容后开始过滤。";
     else status.textContent = `保留 ${count("keep")} · 隐藏 ${count("hide")} · 核验中 ${count("pending")} · 待核验 ${count("error")}`;
-    const failure = values.find(info => info.state === "error");
-    note.textContent = failure ? `待核验结果已隐藏：${failure.reason}` : `当前搜索：${query || "（空）"}。统计仅包含当前已加载视频。`;
+    const failure = list.find(info => info.state === "error");
+    let progress = "";
+    if (videoRoute() && enabled && matcher.tokenize(query).length) {
+      if (filling) progress = `正在读取第 ${nextPage} 页并补充结果…`;
+      else if (fillError) progress = `补充已暂停：${fillError}`;
+      else if (fillEnded) progress = "已读取到最后一页。";
+      else if (fillPaused) progress = "补充已暂停，可点击继续补充。";
+      else if (!fillBudget) progress = "本轮已读取 5 个后续页，可点击继续补充。";
+      else if (loadedPages) progress = `已补充 ${loadedPages} 个后续页，可继续补充。`;
+      else progress = "结果不足一页时自动读取后续页补充。";
+    }
+    note.textContent = [failure ? `待核验结果已隐藏：${failure.reason}` : `当前搜索：${query || "（空）"}。统计包含当前已加载视频。`, progress].filter(Boolean).join(" ");
+    more.hidden = !videoRoute();
+    more.disabled = !enabled || !matcher.tokenize(query).length || filling || fillEnded || !list.length || !!failure || list.some(info => info.state === "pending");
+    stop.hidden = !filling;
   }
 
   function scan() {
@@ -133,7 +298,13 @@
       });
     }
     for (const [card] of cards) if (!card.isConnected) cards.delete(card);
+    const native = values().filter(info => !info.container.hasAttribute("data-bcs-imported"));
+    if (native.length) {
+      pageSize = Math.min(50, native.length);
+      fillTarget = Math.max(fillTarget, native.length);
+    }
     render();
+    if (enabled && matcher.tokenize(query).length) void fill();
   }
 
   function schedule() {
@@ -150,6 +321,7 @@
   chrome.storage.onChanged.addListener((changes, area) => {
     if (area === "local" && changes.enabled) {
       enabled = changes.enabled.newValue !== false;
+      if (!enabled) resetFill();
       activate();
       scan();
     }

@@ -2,7 +2,7 @@
 
 搜索「黑色行动7」，结果却只包含「黑色行动」？搜索 `payday`，又不想漏掉写成 `pay … day` 的视频？
 
-这个 Chrome 扩展合并每条视频的**标题与真实标签**，只保留完整覆盖搜索内容的结果。原版搜索结果仍可一键恢复。
+这个 Chrome 扩展合并每条视频的**标题与真实标签**，只保留完整覆盖搜索内容的结果。过滤后不足一页时，自动从后续页补充经过核验的视频。原版搜索结果仍可一键恢复。
 
 [下载最新安装包](https://github.com/nibushiyigeren123-bot/bilibili-complete-search/releases/latest) · [AI 辅助安装](docs/AI-INSTALL.md) · [详细规则](extension/使用说明.md)
 
@@ -22,7 +22,7 @@
 
 ## 方式一：自己动手安装（主动 / 手动安装）
 
-1. 到 [Releases](https://github.com/nibushiyigeren123-bot/bilibili-complete-search/releases/latest) 下载 `bilibili-complete-search-v1.0.0.zip` 并解压，也可下载源码 ZIP。
+1. 到 [Releases](https://github.com/nibushiyigeren123-bot/bilibili-complete-search/releases/latest) 下载 `bilibili-complete-search-v1.1.0.zip` 并解压，也可下载源码 ZIP。
 2. 将文件保存在固定目录，保留其中的 `extension` 文件夹。
 3. Chrome 地址栏输入 `chrome://extensions`，打开右上角「开发者模式」。
 4. 点击「加载已解压的扩展程序」，选择**直接包含 `manifest.json` 的 `extension` 文件夹**。
@@ -50,9 +50,13 @@ Windows 脚本负责下载、解压、检查文件并打开管理页；Chrome �
 
 右下角显示保留、隐藏、核验中、待核验数量，支持关闭过滤与重新核验。搜索词改变、翻页、新视频插入时自动评估。
 
+**v1.1.0 跨页补充：**在「视频」搜索页，当前结果不足原来一页的数量时，按原搜索词、排序和筛选条件读取后续页。新视频仍按标题与真实标签核验，去重后加入同一列表，保留 B站返回顺序。每轮最多读取 5 个后续页，达到一页数量或最后一页时停止；一批中的合格视频都会保留，因此数量可能略超过一页。可点击「继续补充」读取下一批，或「暂停补充」。关闭过滤会移除补充结果，恢复当前页原始列表。底部 B站页码仍表示原始搜索页，点击翻页会重新开始过滤与补充。
+
+接口失败、风控或标签待核验时暂停补充，保留已核验的视频并显示原因。若所有后续结果也不满足规则，仍可能没有视频；不会为了填满列表放宽匹配规则。
+
 建议在「视频」搜索标签下使用。只过滤 B站已返回的视频，不会扩大搜索召回；综合页中的用户、直播、番剧模块不在过滤范围。标签请求失败的结果先隐藏并显示原因，成功标签缓存 24 小时。
 
-Manifest V3；只在 `search.bilibili.com` 注入脚本，只请求 `api.bilibili.com` 视频标签。不申请所有网站、浏览记录、下载或 Cookie 读取权限；请求可使用已有 B站登录状态。不上传搜索词到第三方，不包含远程执行代码。安装脚本另会访问 GitHub 下载本仓库 Release 文件。
+Manifest V3；只在 `search.bilibili.com` 注入脚本，使用 `api.bilibili.com` 的视频搜索与标签接口。不申请所有网站、浏览记录、下载或 Cookie 读取权限；请求可使用已有 B站登录状态。不上传搜索词到第三方，不包含远程执行代码。安装脚本另会访问 GitHub 下载本仓库 Release 文件。
 
 ## 开发与验证
 
@@ -62,6 +66,6 @@ npm test
 python build.py
 ```
 
-扩展没有运行时 npm 依赖。40 项自动化测试通过；2026-10-09 在独立 Edge Chromium 配置加载扩展并访问真实 `payday` 视频搜索，42 条中保留 33 条、隐藏 9 条，见 [验证记录](verification/验证记录.md)。搜索结果随时间、登录状态变化。
+扩展没有运行时 npm 依赖。54 项自动化测试通过；2026-10-09 在独立 Chromium 配置加载扩展，验证整页筛空、跨页补充、去重、暂停/继续和恢复原始结果，并访问真实 `payday` 搜索页核验后续页读取。见 [验证记录](verification/验证记录.md)。搜索结果随时间、登录状态变化。
 
 MIT 许可，非 B站官方产品。可提交 [Issue](https://github.com/nibushiyigeren123-bot/bilibili-complete-search/issues)。

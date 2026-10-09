@@ -15,6 +15,7 @@ function setup(html, query, getResult, enabled = true) {
     runtime: {sendMessage: async message => {messages.push(message); return getResult(message);}}
   };
   dom.window.eval(source('matcher.js'));
+  dom.window.BiliCompleteSearch={read:async message=>({ok:true,page:message.page,totalPages:message.page-1,videos:[]})};
   dom.window.eval(source('content.js'));
   return {dom, messages, states: () => [...dom.window.document.querySelectorAll('.bili-video-card')].map(item => item.dataset.bcsState)};
 }

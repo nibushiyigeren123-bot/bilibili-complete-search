@@ -1,0 +1,189 @@
+{
+  "browser": "151.0.7922.34",
+  "fixture": {
+    "layout": [
+      {
+        "state": "keep",
+        "x": 30,
+        "y": 92.4375,
+        "width": 190,
+        "title": "payday保留"
+      },
+      {
+        "state": "keep",
+        "x": 240,
+        "y": 92.4375,
+        "width": 190,
+        "title": "1:20payday 新结果示例UP · 补充自第 2 页"
+      },
+      {
+        "state": "keep",
+        "x": 450,
+        "y": 92.4375,
+        "width": 190,
+        "title": "1:20payday 新结果示例UP · 补充自第 2 页"
+      },
+      {
+        "state": "keep",
+        "x": 660,
+        "y": 92.4375,
+        "width": 190,
+        "title": "1:20payday 新结果示例UP · 补充自第 2 页"
+      },
+      {
+        "state": "keep",
+        "x": 870,
+        "y": 92.4375,
+        "width": 190,
+        "title": "1:20payday 新结果示例UP · 补充自第 3 页"
+      },
+      {
+        "state": "keep",
+        "x": 1080,
+        "y": 92.4375,
+        "width": 190,
+        "title": "1:20payday 新结果示例UP · 补充自第 3 页"
+      },
+      {
+        "state": "keep",
+        "x": 30,
+        "y": 273.8125,
+        "width": 190,
+        "title": "1:20payday 新结果示例UP · 补充自第 3 页"
+      }
+    ],
+    "searchPages": [
+      2,
+      3
+    ],
+    "restorePassed": true,
+    "emptyPagePassed": true
+  },
+  "live": {
+    "url": "https://search.bilibili.com/video?keyword=payday",
+    "native": 42,
+    "added": 38,
+    "kept": 48,
+    "states": [
+      "keep",
+      "keep",
+      "keep",
+      "keep",
+      "keep",
+      "keep",
+      "keep",
+      "keep",
+      "keep",
+      "keep",
+      "keep",
+      "keep",
+      "keep",
+      "keep",
+      "keep",
+      "keep",
+      "keep",
+      "hide",
+      "hide",
+      "hide",
+      "hide",
+      "keep",
+      "keep",
+      "keep",
+      "keep",
+      "keep",
+      "keep",
+      "keep",
+      "keep",
+      "keep",
+      "keep",
+      "keep",
+      "keep",
+      "keep",
+      "keep",
+      "keep",
+      "hide",
+      "keep",
+      "keep",
+      "hide",
+      "keep",
+      "hide",
+      "hide",
+      "keep",
+      "hide",
+      "hide",
+      "hide",
+      "hide",
+      "hide",
+      "hide",
+      "hide",
+      "hide",
+      "keep",
+      "hide",
+      "hide",
+      "hide",
+      "hide",
+      "hide",
+      "keep",
+      "hide",
+      "hide",
+      "hide",
+      "hide",
+      "hide",
+      "hide",
+      "hide",
+      "hide",
+      "keep",
+      "hide",
+      "keep",
+      "keep",
+      "hide",
+      "keep",
+      "keep",
+      "hide",
+      "keep",
+      "keep",
+      "keep",
+      "keep",
+      "keep"
+    ],
+    "visibleAdded": 13,
+    "hiddenAdded": 0,
+    "status": "保留 48 · 隐藏 32 · 核验中 0 · 待核验 0",
+    "note": "当前搜索：payday。统计包含当前已加载视频。 已补充 1 个后续页，可继续补充。",
+    "firstVisible": [
+      {
+        "title": "反馈成功平台将做相应处理 撤销稍后再看48.4万102321:30:10收获日2 - 官方原声音乐TF2Video · 2014年7月14日",
+        "x": 56,
+        "y": 280
+      },
+      {
+        "title": "反馈成功平台将做相应处理 撤销稍后再看12025:52【PAYDAY 2 收获日2 】沙克索恩拍卖行｜潜入没费什么劲，运包差点把我送走VapingCat · 3小时前",
+        "x": 313.59375,
+        "y": 280
+      },
+      {
+        "title": "反馈成功平台将做相应处理 撤销稍后再看82.7万883418:49:18【完结/共P52】八千《PAYDAY2/收获日2》主要流程多人联机，剧情向实况解说谜一样的八千流 · 2022年6月17日",
+        "x": 571.1875,
+        "y": 280
+      },
+      {
+        "title": "反馈成功平台将做相应处理 撤销稍后再看112万107422:05《收获日2》超详细新手入门教学社长Crowers · 2021年8月14日",
+        "x": 828.78125,
+        "y": 280
+      },
+      {
+        "title": "反馈成功平台将做相应处理 撤销稍后再看3.5万8602:52:42【收获日掠夺】0级单通全劫案困难难度RedAlearnt · 2021年1月1日",
+        "x": 1086.375,
+        "y": 280
+      }
+    ],
+    "resizePassed": true,
+    "restored": {
+      "total": 42,
+      "notDisplayNone": 24
+    },
+    "restorePassed": true
+  },
+  "worker": "chrome-extension://jplcnijkmpnmcageajgdkhglijdmfdad/background.js",
+  "passed": true
+}

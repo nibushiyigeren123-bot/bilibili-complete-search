@@ -2,7 +2,7 @@ name: Verify and publish extension
 on:
   push:
     branches: [main]
-    paths: ['extension/**', 'build.py', 'scripts/install.ps1', 'docs/RELEASE.md', '.github/workflows/release.yml']
+    paths: ['extension/**', 'tests/**', 'package*.json', 'build.py', 'scripts/install.ps1', 'docs/RELEASE.md', '.github/workflows/release.yml']
   workflow_dispatch:
 permissions:
   contents: write
@@ -28,11 +28,10 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           python build.py
-          if ! gh release view v1.0.0 --repo "${GITHUB_REPOSITORY}" >/dev/null 2>&1; then
-            gh release create v1.0.0 --repo "${GITHUB_REPOSITORY}" --target "${GITHUB_SHA}" --title "v1.0.0 · B站搜索完整包含" --notes-file docs/RELEASE.md
+          VERSION=$(python -c 'import json; print(json.load(open("extension/manifest.json"))["version"])')
+          TAG="v${VERSION}"
+          if ! gh release view "$TAG" --repo "${GITHUB_REPOSITORY}" >/dev/null 2>&1; then
+            gh release create "$TAG" --repo "${GITHUB_REPOSITORY}" --target "${GITHUB_SHA}" --title "$TAG · B站搜索完整包含" --notes-file docs/RELEASE.md
           fi
-          gh release edit v1.0.0 --repo "${GITHUB_REPOSITORY}" --notes-file docs/RELEASE.md
-          gh release upload v1.0.0 bilibili-complete-search-v1.0.0.zip scripts/install.ps1 --repo "${GITHUB_REPOSITORY}" --clobber
-          if gh release view v1.0.0 --repo "${GITHUB_REPOSITORY}" --json assets --jq '.assets[].name' | grep -Fxq 'B._v1.0.0.zip'; then
-            gh release delete-asset v1.0.0 'B._v1.0.0.zip' --repo "${GITHUB_REPOSITORY}" --yes
-          fi
+          gh release edit "$TAG" --repo "${GITHUB_REPOSITORY}" --notes-file docs/RELEASE.md
+          gh release upload "$TAG" "bilibili-complete-search-${TAG}.zip" scripts/install.ps1 --repo "${GITHUB_REPOSITORY}" --clobber

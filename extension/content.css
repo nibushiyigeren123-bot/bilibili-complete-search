@@ -9,6 +9,35 @@ html.bcs-active [data-bcs-state="error"] { display: none !important; }
    appended keep cards must participate in the grid despite their old index. */
 html.bcs-active .video-list-item[data-bcs-state="keep"] { display: block !important; }
 
+/* Own the flow of the existing list while filtering. Explicit original slots,
+   margins, flex widths and invisible placeholders must not leave holes. */
+html.bcs-active .bcs-compact-grid {
+  display: grid !important;
+  grid-template-columns: repeat(auto-fill, minmax(min(220px, 100%), 1fr)) !important;
+  grid-auto-flow: row !important;
+  align-items: start !important;
+  gap: 28px 16px !important;
+  width: 100% !important;
+  margin: 0 !important;
+  padding: 0 !important;
+}
+html.bcs-active .bcs-compact-grid > :not(.bcs-grid-card) { display: none !important; }
+html.bcs-active .bcs-compact-grid > .bcs-grid-card[data-bcs-state="keep"] { display: block !important; }
+html.bcs-active .bcs-compact-grid > .bcs-grid-card {
+  width: 100% !important;
+  min-width: 0 !important;
+  max-width: none !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  grid-column: auto !important;
+  grid-row: auto !important;
+  order: 0 !important;
+  float: none !important;
+  position: relative !important;
+  inset: auto !important;
+  transform: none !important;
+}
+
 /* Added pages participate in the original responsive grid. Closing the filter
    removes them; this also prevents a flash of extra results during toggling. */
 html:not(.bcs-active) .bcs-imported { display: none !important; }

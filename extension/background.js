@@ -4,10 +4,10 @@ const inFlight = new Map();
 let queue = Promise.resolve();
 let blockedUntil = 0;
 
-async function readTags(id) {
+async function readTags(id, refresh = false) {
   const key = `tags:${id}`;
   const cached = (await chrome.storage.local.get(key))[key];
-  if (cached && Date.now() - cached.time < CACHE_TTL) return {ok: true, tags: cached.tags};
+  if (!refresh && cached && Date.now() - cached.time < CACHE_TTL) return {ok: true, tags: cached.tags};
   if (Date.now() < blockedUntil) throw new Error("B站暂时限制标签请求，请稍后重新核验");
   const url = new URL("https://api.bilibili.com/x/tag/archive/tags");
   url.searchParams.set(id.startsWith("BV") ? "bvid" : "aid", id.replace(/^av/, ""));
@@ -27,9 +27,9 @@ async function readTags(id) {
   return {ok: true, tags};
 }
 
-function getTags(id) {
+function getTags(id, refresh = false) {
   if (inFlight.has(id)) return inFlight.get(id);
-  const job = queue.then(() => readTags(id)).catch(error => ({ok: false, error: error.message}));
+  const job = queue.then(() => readTags(id, refresh)).catch(error => ({ok: false, error: error.message}));
   // Sequential calls and a small gap avoid flooding the public endpoint.
   queue = job.then(() => new Promise(resolve => setTimeout(resolve, 200)));
   inFlight.set(id, job);
@@ -42,6 +42,6 @@ chrome.runtime.onMessage.addListener((message, sender, respond) => {
   let source;
   try { source = new URL(sender.url); } catch { return; }
   if (source.origin !== "https://search.bilibili.com" || !/^(BV[a-zA-Z0-9]{10}|av[1-9][0-9]*)$/.test(message.id)) return;
-  getTags(message.id).then(respond);
+  getTags(message.id, message.refresh === true).then(respond);
   return true;
 });

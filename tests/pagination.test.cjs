@@ -95,10 +95,10 @@ test('last page and duplicate-only pages stop without infinite requests',async t
  assert.match(end.panel().getElementById('note').textContent,/最后一页/);
 });
 
-test('native page number is respected and comprehensive search never auto-loads video pages',async t=>{
+test('native page number is respected and non-video searches never auto-load video pages',async t=>{
  const env=setup(card(1,'无关'),message=>message.type==='bcs:tags'?{ok:true,tags:[]}:{ok:true,page:message.page,totalPages:3,videos:[]},'/video?keyword=payday&page=3&order=click');
  t.after(()=>env.dom.window.close());await until(()=>env.searches().length);assert.equal(env.searches()[0].page,4);assert.match(env.searches()[0].url,/order=click/);
- const all=setup(card(1,'无关'),()=>({ok:true,tags:[]}),'/all?keyword=payday');t.after(()=>all.dom.window.close());await wait(180);assert.equal(all.searches().length,0);
+ const all=setup(card(1,'无关'),()=>({ok:true,tags:[]}),'/live?keyword=payday');t.after(()=>all.dom.window.close());await wait(180);assert.equal(all.searches().length,0);
 });
 
 test('server highlighting is decoded as text and active HTML is never inserted',async t=>{
@@ -107,4 +107,39 @@ test('server highlighting is decoded as text and active HTML is never inserted',
  assert.equal(env.kept()[0].querySelector('h3').textContent,'payday & ');
  assert.equal(env.imported()[0].querySelectorAll('script,img,[onerror]').length,0);
  assert.equal(env.kept()[0].querySelector('a').rel,'noopener noreferrer');
+});
+
+test('retry refreshes cached tags, reports completion, and keeps compact layout reversible',async t=>{
+ const env=setup(card(1,'pay')+card(2,'无关'),message=>message.type==='bcs:tags'?{ok:true,tags:message.refresh&&message.id===id(1)?['day']:[]}:{ok:true,page:message.page,totalPages:1,videos:[]});
+ t.after(()=>env.dom.window.close());await until(()=>env.panel()?.getElementById('note').textContent.includes('最后一页'));
+ assert.equal(env.kept().length,0);assert(env.dom.window.document.querySelector('.bcs-compact-grid'));
+ env.panel().getElementById('retry').click();await until(()=>env.kept().length===1);
+ assert.match(env.panel().getElementById('note').textContent,/重新核验第 1 次.*本轮核验已结束/);
+ assert.equal(env.messages.filter(m=>m.type==='bcs:tags'&&m.refresh).length,2);
+ assert.equal(env.panel().getElementById('retry').disabled,false);
+ env.panel().getElementById('toggle').click();await wait(30);
+ assert.equal(env.dom.window.document.querySelectorAll('.bcs-compact-grid,.bcs-grid-card').length,0);
+});
+
+test('comprehensive search hides the unmarked column wrapper and fills only its video list',async t=>{
+ const original=card(1,'无关').replace('class="video-list-item"','class="col_3 mb_x40"');
+ const env=setup(original,message=>message.type==='bcs:tags'?{ok:true,tags:[]}:{ok:true,page:message.page,totalPages:2,videos:[video(2,'payday')]},'/all?keyword=payday');
+ t.after(()=>env.dom.window.close());
+ const other=env.dom.window.document.createElement('section');other.id='user-and-live-results';other.textContent='用户和直播结果';env.dom.window.document.body.append(other);
+ await until(()=>env.kept().length===1);
+ assert.equal(env.dom.window.document.querySelector('.col_3').dataset.bcsState,'hide');
+ assert.equal(env.dom.window.document.querySelector('.col_3').classList.contains('bcs-grid-card'),true);
+ assert.equal(env.imported()[0].dataset.bcsState,'keep');assert.equal(other.textContent,'用户和直播结果');assert.equal(other.hasAttribute('data-bcs-state'),false);
+});
+
+test('tracking parameters cannot discard pending later pages or reset retry feedback',async t=>{
+ let release;
+ const env=setup(card(1,'无关'),message=>message.type==='bcs:tags'?{ok:true,tags:[]}:new Promise(resolve=>release=resolve));
+ t.after(()=>env.dom.window.close());await until(()=>!!release);
+ env.dom.window.history.pushState({},'','?vt=52977042&keyword=payday&from_spmid=test');
+ release({ok:true,page:2,totalPages:2,videos:[video(2,'payday')]});
+ await until(()=>env.kept().length===1);assert.equal(env.imported().length,1);
+ env.panel().getElementById('retry').click();await until(()=>env.panel().getElementById('note').textContent.includes('重新核验第 1 次'));
+ env.dom.window.history.pushState({},'','?keyword=payday&vt=999');await wait(500);
+ assert.match(env.panel().getElementById('note').textContent,/重新核验第 1 次/);assert.equal(env.imported().length,1);
 });

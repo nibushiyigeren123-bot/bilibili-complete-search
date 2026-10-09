@@ -34,7 +34,7 @@ const fixture=(cards)=>`<!doctype html><html><head><style>body{font:16px system-
   assert.deepEqual(searchPages,[2,3]);
   const layout=await page.locator('.video-list-item').evaluateAll(items=>items.filter(item=>getComputedStyle(item).display!=='none').map(item=>{const r=item.getBoundingClientRect();return {state:item.dataset.bcsState,x:r.x,y:r.y,width:r.width,title:item.textContent};}));
   assert.equal(layout[0].x,30,'first kept video occupies the very first slot');
-  assert.equal(layout[1].x,240,'next kept video occupies the adjacent slot');
+  assert(Math.abs(layout[1].x-(layout[0].x+layout[0].width+16))<1,'next kept video occupies the adjacent grid slot');
   assert.equal(layout.length,7,'retained videos override original nth-child hiding');
   assert(layout.every(item=>item.state==='keep'));
   report.fixture.layout=layout;report.fixture.searchPages=[...searchPages];

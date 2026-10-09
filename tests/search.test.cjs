@@ -31,5 +31,5 @@ test('rejects incorrect page data, invalid video ids and malformed page counts',
 });
 test('page search cannot request foreign hosts, non-video routes or unbounded pages',()=>{
  const api=setup(async()=>{throw Error('must not fetch');});
- for(const change of [{url:'https://evil.example/video?keyword=payday'},{url:'https://search.bilibili.com/all?keyword=payday'},{url:'https://search.bilibili.com/video'},{page:1001},{page:1.5},{pageSize:999}])assert.throws(()=>api.urlFor({...request,...change}));
+ for(const change of [{url:'https://evil.example/video?keyword=payday'},{url:'https://search.bilibili.com/live?keyword=payday'},{url:'https://search.bilibili.com/video'},{page:1001},{page:1.5},{pageSize:999}])assert.throws(()=>api.urlFor({...request,...change}));
 });

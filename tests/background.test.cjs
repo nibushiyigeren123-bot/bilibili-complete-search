@@ -11,7 +11,7 @@ function setup(fetcher) {
     runtime:{onMessage:{addListener: fn => {listener=fn;}}}
   }};
   vm.runInNewContext(fs.readFileSync(path.join(__dirname,'../extension/background.js'),'utf8'), context);
-  const send = id => new Promise(resolve => listener({type:'bcs:tags',id},{url:'https://search.bilibili.com/video'},resolve));
+  const send = (id,refresh=false) => new Promise(resolve => listener({type:'bcs:tags',id,refresh},{url:'https://search.bilibili.com/video'},resolve));
   return {send, getListener: () => listener};
 }
 test('deduplicates requests, extracts actual tag names, and reuses cache', async () => {
@@ -33,4 +33,19 @@ test('rejects arbitrary ids and foreign sender origins', () => {
   const listener=env.getListener();
   assert.equal(listener({type:'bcs:tags',id:'../../attack'},{url:'https://search.bilibili.com/video'},()=>{}),undefined);
   assert.equal(listener({type:'bcs:tags',id:'BV1111111111'},{url:'https://example.com'},()=>{}),undefined);
+});
+
+test('manual refresh skips a successful cache entry and updates it with current tags', async()=>{
+  let calls=0;const env=setup(async()=>({ok:true,json:async()=>({code:0,data:[{tag_name:++calls===1?'old':'day'}]})}));
+  assert.deepEqual(Array.from((await env.send('BV1111111111')).tags),['old']);
+  assert.deepEqual(Array.from((await env.send('BV1111111111',true)).tags),['day']);
+  assert.deepEqual(Array.from((await env.send('BV1111111111')).tags),['day']);
+  assert.equal(calls,2);
+});
+
+test('manual refresh still respects cooldown after a rate limit',async()=>{
+  let calls=0;const env=setup(async()=>++calls===1?{ok:true,json:async()=>({code:0,data:[{tag_name:'old'}]})}:{ok:false,status:429});
+  await env.send('BV1111111111');await env.send('BV2222222222');
+  assert.equal((await env.send('BV1111111111',true)).ok,false);
+  assert.equal(calls,2);
 });

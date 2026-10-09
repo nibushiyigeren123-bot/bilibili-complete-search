@@ -16,7 +16,7 @@ powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\install.ps1
 
 ```powershell
 powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\install.ps1 -InstallRoot "D:\Tools\BiliCompleteSearch"
-powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\install.ps1 -ArchivePath "C:\Downloads\bilibili-complete-search-v1.1.0.zip"
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\install.ps1 -ArchivePath "C:\Downloads\bilibili-complete-search-v1.1.1.zip"
 ```
 
 `-NoOpenBrowser` 仅准备文件，稍后操作界面。

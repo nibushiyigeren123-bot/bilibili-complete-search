@@ -1,0 +1,67 @@
+{
+  "old": {
+    "legacy": true,
+    "before": [
+      {
+        "display": "block",
+        "x": 30,
+        "y": 112.4375
+      },
+      {
+        "display": "block",
+        "x": 450,
+        "y": 312.4375
+      },
+      {
+        "display": "block",
+        "x": 240,
+        "y": 112.4375
+      }
+    ],
+    "reproducedGaps": true,
+    "reproducedCachedRetry": true,
+    "passed": true
+  },
+  "current": {
+    "legacy": false,
+    "before": [
+      {
+        "state": "hide",
+        "display": "none",
+        "x": 0,
+        "y": 0
+      },
+      {
+        "state": "keep",
+        "display": "block",
+        "x": 30,
+        "y": 112.4375
+      },
+      {
+        "state": "hide",
+        "display": "none",
+        "x": 0,
+        "y": 0
+      }
+    ],
+    "feedback": {
+      "retries": "1",
+      "note": "当前搜索：事变日mod。统计包含当前已加载视频。 已读取到最后一页。 重新核验第 1 次：本轮核验已结束。",
+      "version": " v1.1.1"
+    },
+    "after": [
+      {
+        "x": 30,
+        "y": 112.4375,
+        "width": 255.1875
+      },
+      {
+        "x": 301.1875,
+        "y": 112.4375,
+        "width": 255.203125
+      }
+    ],
+    "restorePassed": true,
+    "passed": true
+  }
+}

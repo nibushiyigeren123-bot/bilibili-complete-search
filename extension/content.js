@@ -24,8 +24,37 @@
   let fillEnded = false;
   let fillPaused = false;
   let fillError = "";
+  let retryCount = 0;
+  let retry;
+  const layoutGrids = new Set();
+  const layoutCards = new Set();
 
-  function videoRoute() { return /^\/video\/?$/.test(location.pathname); }
+  function clearLayout() {
+    for (const grid of layoutGrids) grid.classList.remove("bcs-compact-grid");
+    for (const container of layoutCards) container.classList.remove("bcs-grid-card");
+    layoutGrids.clear();
+    layoutCards.clear();
+  }
+
+  function syncLayout() {
+    if (!enabled || !videoRoute() || !matcher.tokenize(query).length) { clearLayout(); return; }
+    const currentCards = new Set(values().map(info => info.container));
+    const currentGrids = new Set([...currentCards].map(container => container.parentElement).filter(Boolean));
+    for (const grid of layoutGrids) if (!currentGrids.has(grid)) { grid.classList.remove("bcs-compact-grid"); layoutGrids.delete(grid); }
+    for (const container of layoutCards) if (!currentCards.has(container)) { container.classList.remove("bcs-grid-card"); layoutCards.delete(container); }
+    for (const grid of currentGrids) { grid.classList.add("bcs-compact-grid"); layoutGrids.add(grid); }
+    for (const container of currentCards) { container.classList.add("bcs-grid-card"); layoutCards.add(container); }
+  }
+
+  function videoRoute() { return /^\/(video|all)\/?$/.test(location.pathname); }
+  function routeSignature() {
+    const url = new URL(location.href);
+    const params = new URLSearchParams();
+    for (const name of ["keyword", "page", "order", "order_sort", "duration", "tids", "tids_1", "tids_2", "pubtime", "begin", "end", "search_type"]) {
+      if (url.searchParams.has(name)) params.set(name, url.searchParams.get(name));
+    }
+    return `${url.pathname}?${params.toString()}`;
+  }
   function values() { return [...cards.values()].filter(info => info.card.isConnected); }
   function resetFill() {
     fillRun++;
@@ -47,11 +76,13 @@
 
   function readRoute() {
     const url = new URL(location.href);
-    const next = `${url.pathname}?${url.searchParams.toString()}`;
+    const next = routeSignature();
     if (next === signature) return;
     signature = next;
     query = url.searchParams.get("keyword") || "";
     epoch++;
+    retryCount = 0;
+    clearLayout();
     resetFill();
     cards.clear();
     document.querySelectorAll("[data-bcs-state]").forEach(element => element.removeAttribute("data-bcs-state"));
@@ -76,7 +107,13 @@
       const found = href.match(/\/video\/(BV[a-zA-Z0-9]{10}|av[1-9][0-9]*)(?:[/?#]|$)/);
       if (found) { id = found[1]; break; }
     }
-    const container = card.closest(".video-list-item") || card;
+    let container = card.closest(".video-list-item") || card;
+    const list = card.closest(".video-list");
+    if (list) {
+      let wrapper = card;
+      while (wrapper.parentElement && wrapper.parentElement !== list) wrapper = wrapper.parentElement;
+      if (wrapper.parentElement === list && wrapper.querySelectorAll(".bili-video-card").length <= 1) container = wrapper;
+    }
     return {card, container, id, title, state: "pending", reason: ""};
   }
 
@@ -93,9 +130,9 @@
     }
     setState(info, "pending");
     try {
-      let result = tagCache.get(info.id);
+      let result = info.refresh ? null : tagCache.get(info.id);
       if (!result) {
-        result = await chrome.runtime.sendMessage({type: "bcs:tags", id: info.id});
+        result = await chrome.runtime.sendMessage({type: "bcs:tags", id: info.id, refresh: info.refresh === true});
         if (result?.ok) tagCache.set(info.id, result);
       }
       if (epoch !== currentEpoch || cards.get(info.card) !== info || !info.card.isConnected) return;
@@ -111,7 +148,7 @@
   function createVideo(video, template, page) {
     const container = document.createElement("div");
     container.className = template.className;
-    container.classList.add("bcs-imported");
+    container.classList.add("bcs-imported", "video-list-item");
     container.dataset.bcsImported = "true";
     container.dataset.bcsState = "pending";
     const card = document.createElement("div");
@@ -163,7 +200,7 @@
     const currentEpoch = epoch;
     const run = ++fillRun;
     const currentUrl = location.href;
-    const current = () => enabled && epoch === currentEpoch && fillRun === run && signature === `${location.pathname}?${new URL(location.href).searchParams.toString()}` && grid.isConnected;
+    const current = () => enabled && epoch === currentEpoch && fillRun === run && signature === routeSignature() && grid.isConnected;
     filling = true;
     render();
     try {
@@ -213,19 +250,26 @@
     if (host?.isConnected || !document.body) return;
     host = document.createElement("div");
     host.id = "bcs-panel";
+    // Keep page-level pointer/display rules from disabling the whole shadow UI.
+    host.style.cssText = "position:fixed!important;bottom:20px!important;right:20px!important;z-index:2147483647!important;pointer-events:auto!important;display:block!important;visibility:visible!important;isolation:isolate!important;";
     const shadow = host.attachShadow({mode: "open"});
     shadow.innerHTML = `<style>
-      :host{position:fixed;bottom:20px;right:20px;z-index:2147483646;color:#253345;font:13px/1.6 system-ui,sans-serif}
-      .box{width:290px;border:1px solid #c6e8f4;border-radius:14px;background:#fff;box-shadow:0 5px 28px #183c5326;padding:14px}
+      :host{position:fixed;bottom:20px;right:20px;z-index:2147483647;color:#253345;font:13px/1.6 system-ui,sans-serif;pointer-events:auto}
+      .box{width:290px;max-width:calc(100vw - 68px);max-height:calc(100vh - 68px);overflow:auto;border:1px solid #c6e8f4;border-radius:14px;background:#fff;box-shadow:0 5px 28px #183c5326;padding:14px;pointer-events:auto}
       .head{display:flex;align-items:center;justify-content:space-between;font-weight:700;font-size:14px}
-      button{font:inherit;cursor:pointer;border:1px solid #c6d9e3;background:#f4fafd;border-radius:7px;padding:4px 9px;color:#166781}
-      p{margin:9px 0 0;overflow-wrap:anywhere}.small{font-size:12px;color:#6e7c8b}.actions{display:flex;gap:8px;margin-top:10px}
+      button{font:inherit;cursor:pointer;border:1px solid #c6d9e3;background:#f4fafd;border-radius:7px;padding:4px 9px;color:#166781;pointer-events:auto}
+      p{margin:9px 0 0;overflow-wrap:anywhere}.small{font-size:12px;color:#6e7c8b}.actions{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px}.version{font-size:10px;font-weight:400;color:#6e7c8b}
     </style><div class="box"><div class="head"><span>B站搜索 · 完整包含</span><button id="toggle" type="button"></button></div><p id="status" aria-live="polite"></p><p id="note" class="small"></p><div class="actions"><button id="retry" type="button">重新核验</button><button id="more" type="button">继续补充</button><button id="stop" type="button" hidden>暂停补充</button></div><p class="small">标题 + 标签；中文、数字完整匹配，英文可拆成至少 2 字母的词块。</p></div>`;
     status = shadow.getElementById("status");
     toggle = shadow.getElementById("toggle");
     note = shadow.getElementById("note");
     more = shadow.getElementById("more");
     stop = shadow.getElementById("stop");
+    retry = shadow.getElementById("retry");
+    const version = document.createElement("span");
+    version.className = "version";
+    version.textContent = ` v${chrome.runtime.getManifest?.().version || "1.1.1"}`;
+    shadow.querySelector(".head > span").append(version);
     more.addEventListener("click", () => {
       fillPaused = false;
       fillError = "";
@@ -247,14 +291,18 @@
       await chrome.storage.local.set({enabled});
       scan();
     });
-    shadow.getElementById("retry").addEventListener("click", () => {
+    retry.addEventListener("click", () => {
+      readRoute();
       epoch++;
       fillRun++;
       filling = false;
       fillError = "";
       fillPaused = false;
+      fillBudget = 5;
+      retryCount++;
+      tagCache.clear();
       cards.clear();
-      scan();
+      scan(true);
     });
     document.body.append(host);
   }
@@ -262,6 +310,7 @@
   function render() {
     mountPanel();
     if (!status) return;
+    host.dataset.bcsRetryCount = String(retryCount);
     const list = values();
     const count = state => list.filter(info => info.state === state).length;
     toggle.textContent = enabled ? "关闭过滤" : "开启过滤";
@@ -280,12 +329,16 @@
       else progress = "结果不足一页时自动读取后续页补充。";
     }
     note.textContent = [failure ? `待核验结果已隐藏：${failure.reason}` : `当前搜索：${query || "（空）"}。统计包含当前已加载视频。`, progress].filter(Boolean).join(" ");
+    if (retryCount) note.textContent += ` 重新核验第 ${retryCount} 次：${count("pending") ? "正在重新读取标签…" : "本轮核验已结束。"}`;
+    retry.disabled = !enabled || !matcher.tokenize(query).length;
+    // Keep the panel after page-inserted overlays in the same stacking level.
+    if (document.body && document.body.lastElementChild !== host) document.body.append(host);
     more.hidden = !videoRoute();
     more.disabled = !enabled || !matcher.tokenize(query).length || filling || fillEnded || !list.length || !!failure || list.some(info => info.state === "pending");
     stop.hidden = !filling;
   }
 
-  function scan() {
+  function scan(refresh = false) {
     readRoute();
     if (enabled && matcher.tokenize(query).length) {
       document.querySelectorAll(".bili-video-card, .video-item").forEach(card => {
@@ -293,6 +346,7 @@
         if (!info) return;
         const old = cards.get(card);
         if (old && old.id === info.id && old.title === info.title) return;
+        info.refresh = refresh;
         cards.set(card, info);
         void evaluate(info);
       });
@@ -303,6 +357,7 @@
       pageSize = Math.min(50, native.length);
       fillTarget = Math.max(fillTarget, native.length);
     }
+    syncLayout();
     render();
     if (enabled && matcher.tokenize(query).length) void fill();
   }
@@ -329,5 +384,5 @@
   new MutationObserver(schedule).observe(document.documentElement, {childList: true, subtree: true, characterData: true, attributes: true, attributeFilter: ["href", "title"]});
   window.addEventListener("popstate", schedule);
   // B站 uses pushState; isolated content scripts cannot patch its page-world history.
-  setInterval(() => { if (`${location.pathname}?${new URL(location.href).searchParams.toString()}` !== signature) scan(); }, 400);
+  setInterval(() => { if (routeSignature() !== signature) scan(); }, 400);
 })();

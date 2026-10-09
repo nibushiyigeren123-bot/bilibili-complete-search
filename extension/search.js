@@ -4,7 +4,7 @@
 
   function urlFor(message) {
     const source = new URL(message.url);
-    if (source.origin !== "https://search.bilibili.com" || !/^\/video\/?$/.test(source.pathname) ||
+    if (source.origin !== "https://search.bilibili.com" || !/^\/(video|all)\/?$/.test(source.pathname) ||
         !source.searchParams.get("keyword")?.trim() || !Number.isInteger(message.page) || message.page < 1 || message.page > 1000 ||
         !Number.isInteger(message.pageSize) || message.pageSize < 1 || message.pageSize > 50) throw new Error("补充搜索参数无效");
     const url = new URL("https://api.bilibili.com/x/web-interface/search/type");

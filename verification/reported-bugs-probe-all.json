@@ -1,0 +1,104 @@
+{
+  "browser": "151.0.7922.34",
+  "worker": "chrome-extension://klemcphmlljkcpiakajijhcbhndggdgg/background.js",
+  "cardChains": [
+    [
+      {
+        "class": "bili-video-card",
+        "children": 2,
+        "display": "none"
+      },
+      {
+        "class": "col_3 col_xs_1_5 col_md_2 col_xl_1_7 mb_x40 bcs-grid-card",
+        "children": 1,
+        "display": "none"
+      },
+      {
+        "class": "video-list row bcs-compact-grid",
+        "children": 42,
+        "display": "grid"
+      },
+      {
+        "class": "video i_wrapper search-all-list",
+        "children": 1,
+        "display": "block"
+      },
+      {
+        "class": "",
+        "children": 3,
+        "display": "block"
+      }
+    ],
+    [
+      {
+        "class": "bili-video-card",
+        "children": 2,
+        "display": "none"
+      },
+      {
+        "class": "col_3 col_xs_1_5 col_md_2 col_xl_1_7 mb_x40 bcs-grid-card",
+        "children": 1,
+        "display": "none"
+      },
+      {
+        "class": "video-list row bcs-compact-grid",
+        "children": 42,
+        "display": "grid"
+      },
+      {
+        "class": "video i_wrapper search-all-list",
+        "children": 1,
+        "display": "block"
+      },
+      {
+        "class": "",
+        "children": 3,
+        "display": "block"
+      }
+    ],
+    [
+      {
+        "class": "bili-video-card",
+        "children": 2,
+        "display": "block"
+      },
+      {
+        "class": "col_3 col_xs_1_5 col_md_2 col_xl_1_7 mb_x40 bcs-grid-card",
+        "children": 1,
+        "display": "block"
+      },
+      {
+        "class": "video-list row bcs-compact-grid",
+        "children": 42,
+        "display": "grid"
+      },
+      {
+        "class": "video i_wrapper search-all-list",
+        "children": 1,
+        "display": "block"
+      },
+      {
+        "class": "",
+        "children": 3,
+        "display": "block"
+      }
+    ]
+  ],
+  "layout": [],
+  "url": "https://search.bilibili.com/all?keyword=%E4%BA%8B%E5%8F%98%E6%97%A5mod",
+  "before": "当前搜索：事变日mod。统计包含当前已加载视频。 结果不足一页时自动读取后续页补充。",
+  "tagCallsBefore": 40,
+  "button": {
+    "disabled": false,
+    "hit": "retry",
+    "pointerEvents": "auto"
+  },
+  "clickSucceeded": true,
+  "after": {
+    "note": "当前搜索：事变日mod。统计包含当前已加载视频。 结果不足一页时自动读取后续页补充。 重新核验第 1 次：正在重新读取标签…",
+    "retries": "1",
+    "panels": 1
+  },
+  "tagCallsAfter": 44,
+  "afterUrl": "https://search.bilibili.com/all?vt=53132095&keyword=%E4%BA%8B%E5%8F%98%E6%97%A5mod"
+}
